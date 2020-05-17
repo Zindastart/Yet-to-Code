@@ -1,0 +1,147 @@
+1452. People Whose List of Favorite Companies Is Not a Subset of Another List
+Given the array favoriteCompanies where favoriteCompanies[i] is the list of favorites companies for the ith person (indexed from 0).
+Return the indices of people whose list of favorite companies is not a subset of any other list of favorites companies. You must return the indices in increasing order.
+ 
+Example 1:
+Input: favoriteCompanies = [["leetcode","google","facebook"],["google","microsoft"],["google","facebook"],["google"],["amazon"]]
+Output: [0,1,4] 
+Explanation: 
+Person with index=2 has favoriteCompanies[2]=["google","facebook"] which is a subset of favoriteCompanies[0]=["leetcode","google","facebook"] corresponding to the person with index 0. 
+Person with index=3 has favoriteCompanies[3]=["google"] which is a subset of favoriteCompanies[0]=["leetcode","google","facebook"] and favoriteCompanies[1]=["google","microsoft"]. 
+Other lists of favorite companies are not a subset of another list, therefore, the answer is [0,1,4].
+Example 2:
+Input: favoriteCompanies = [["leetcode","google","facebook"],["leetcode","amazon"],["facebook","google"]]
+Output: [0,1] 
+Explanation: In this case favoriteCompanies[2]=["facebook","google"] is a subset of favoriteCompanies[0]=["leetcode","google","facebook"], therefore, the answer is [0,1].
+Example 3:
+Input: favoriteCompanies = [["leetcode"],["google"],["facebook"],["amazon"]]
+Output: [0,1,2,3]
+ 
+Constraints:
+•	1 <= favoriteCompanies.length <= 100
+•	1 <= favoriteCompanies[i].length <= 500
+•	1 <= favoriteCompanies[i][j].length <= 20
+•	All strings in favoriteCompanies[i] are distinct.
+•	All lists of favorite companies are distinct, that is, If we sort alphabetically each list then favoriteCompanies[i] != favoriteCompanies[j].
+•	All strings consist of lowercase English letters only.
+{idea}
+Typical union-find
+for example:
+favoriteCompanies = [["leetcode","google","facebook"],["google","microsoft"],["google","facebook"],["google"],["amazon"]]
+it is actually a graph:
+{lgf} -> {gf} -> {g}
+{gm}
+{a}
+In the end, we just need to return the index of the three roots of the graph.
+{code}
+1.	initialize father of each list as itself
+2.	for i from 0 to length
+1.	for j from i+1 to length
+1.	let a = father of list i, let b = father of list j
+2.	if a==b, it means list i and j shares the same ancestor, do nothing
+3.	else if a contains b, let a becomes b's father
+4.	else if b contains a, let b becomes a's father
+3.	in the end, add all unique roots into a set, and return it in res
+Solution 1:
+
+class Solution {
+    public List<Integer> peopleIndexes(List<List<String>> fcs) {
+        List<Integer> res= new LinkedList<>();
+        int l = fcs.size();
+        int[] f = new int[l];
+        for (int i=0; i<l; i++) f[i]=i;
+        for (int i=0; i<l; i++){
+            for (int j=i+1; j<l; j++){
+                int a = find(f, i), b = find(f, j);
+                if (f[a]==f[b]) continue;
+                else if (contains(fcs.get(a), fcs.get(b))) f[b]=f[a];
+                else if (contains(fcs.get(b), fcs.get(a))) f[a]=f[b];
+            }
+        }
+        Set<Integer> set= new HashSet<>();
+        for (int i: f) set.add(find(f, i));
+        res.addAll(set);
+        Collections.sort(res);
+        return res;
+    }
+    public boolean contains(List<String> a, List<String> b){
+        if (a.size()<=b.size()) return false;
+        return a.containsAll(b);
+    }
+    public int find(int[] f, int i){
+        while (f[i]!=i){
+            f[i]=f[f[i]];
+            i=f[i];
+        }
+        return i;
+    }
+}
+
+Solution 2:
+Not fast, but simple. Uses includes to check if the first sorted set includes the second one. We can re-map strings to integer ids to make it a bit faster (second solution).
+vector<int> peopleIndexes(vector<vector<string>>& favs) {
+	for (auto &comps : favs)
+		sort(begin(comps), end(comps));
+	vector<int> res;
+	for (auto i = 0; i < favs.size(); ++i) {
+		bool notSubset = true;
+		for (auto j = 0; j < favs.size() && notSubset; ++j) {
+			if (i == j)
+				continue;
+			notSubset = !includes(begin(favs[j]), end(favs[j]), begin(favs[i]), end(favs[i]));
+		}
+		if (notSubset)
+			res.push_back(i);
+	}
+	return res;
+}
+Optimized Solution
+vector<int> peopleIndexes(vector<vector<string>>& favs) {
+    unordered_map<string, int> ids;
+    int id = 0;
+    vector<vector<int>> comps(favs.size());
+    for (auto i = 0; i < favs.size(); ++i) {
+        for (auto &comp : favs[i]) {
+            if (!ids.count(comp)) {
+                ids[comp] = id++;
+            }
+            comps[i].push_back(ids[comp]);
+        }            
+    }
+    for (auto &comp: comps)
+        sort(begin(comp), end(comp));
+    vector<int> res;
+    for (auto i = 0; i < comps.size(); ++i) {
+        bool notSubset = true;            
+        for (auto j = 0; j < comps.size() && notSubset; ++j) {
+            if (i == j)
+                continue;
+            notSubset = !includes(begin(comps[j]), end(comps[j]), begin(comps[i]), end(comps[i]));
+        }
+        if (notSubset)
+            res.push_back(i);
+    }
+    return res;
+}
+
+Using Includes Function
+
+53 VIEWS
+class Solution {
+public:
+    vector<int> peopleIndexes(vector<vector<string>>& com) {
+        int n = com.size();
+        vector<int>ans;
+        for(auto &cm:com)sort(begin(cm),end(cm));
+        for(int i=0;i<n;i++){
+            bool f=false;
+            for(int j=0;j<n&&!f;j++){
+                if(i!=j)
+                    f = includes(begin(com[j]),end(com[j]),begin(com[i]),end(com[i]));
+            }
+            if(!f)ans.push_back(i);
+        }
+        return ans;
+    }
+};
+
